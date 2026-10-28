@@ -1,0 +1,29 @@
+{
+  "name": "authentication",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.11.0",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-router": "^0.0.1",
+    "mongodb": "^7.7.0",
+    "mongoose": "^9.11.4",
+    "multer": "^2.5.0",
+    "node-dns": "^0.1.0",
+    "router-express": "^1.5.2"
+  },
+  "devDependencies": {
+    "@types/multer": "^2.3.0"
+  }
+}
