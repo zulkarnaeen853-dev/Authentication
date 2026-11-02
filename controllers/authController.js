@@ -1,10 +1,23 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcrypt')
+const {
+    hashToken,
+    generateSecureToken,
+    generateAccessToken,
+    generateRefreshToken,
+    verifyAccessToken, 
+    verifyRefreshToken 
+} = require("../helpers/tokenHelper");
+const  {
+    sendVerificationEmail
+} = require('../helpers/emailHelper')
+const VERIFICATION_EXPIRE_MS = process.env.VERIFICATION_EXPIRE_MS
+const RESET_EXPIRE_MS = process.env.RESET_EXPIRE_MS
 
 const registration = async (req, res) => {
 
     try {
-        
+
         const { name, email, password, profilePic } = req.body;
 
         if (!name || !email || !password) {
@@ -30,30 +43,46 @@ const registration = async (req, res) => {
         });
         }
 
+        const plainVerificationToken = generateSecureToken();
+
         const hashedPassword = await bcrypt.hash(password, 10)
 
-        const newUser = await User.create({
-        name,
-        email,
-        password: hashedPassword,
-        profilePic
+        const newUser = await userModel.create({
+            name,
+            email,
+            password:hashedPassword,
+            profilePic,
+            emailVerificationToken: hashToken(plainVerificationToken),
+            emailVerificationTokenExpires: new Date(Date.now() + VERIFICATION_EXPIRE_MS),
         });
 
-        return res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        user: {
-            id: newUser._id,
-            name: newUser.name,
-            email: newUser.email,
-            profilePic: newUser.profilePic
+        try {
+            await sendVerificationEmail(user.name, user.email, plainVerificationToken)
+        } catch (mailError) {
+            await userModel.findByIdAndDelete({id: newUser._id})
+            console.error(`Verification email failed:${mailError}`)
+            return res.status(500).json({
+                success: false,
+                message: "Registration failed: could not send verification email",
+        });
+
         }
+
+        return res.status(201).json({
+            success: true,
+            message: "User registered successfully",
+            user: {
+                id: newUser._id,
+                name: newUser.name,
+                email: newUser.email,
+                profilePic: newUser.profilePic
+            }
         });
 
     } catch (error) {
         return res.status(500).json({ 
-        success: false, 
-        message: "Server error", 
+            success: false, 
+            message: "Server error", 
         });
     }
 };

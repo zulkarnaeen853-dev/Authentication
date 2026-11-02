@@ -19,7 +19,36 @@ const userSchema = new mongoose.Schema({
     },
     profilePic: {
         type: String,
-    }
+    },
+    role: {
+      type: String,
+      enum: ["admin", "employee", "user"],
+      default: "user"
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      select: false,
+    },
+    emailVerificationTokenExpires: {
+      type: Date,
+      select: false,
+    },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetTokenExpires: {
+      type: Date,
+      select: false,
+    },
+    refreshToken: {
+      type: String,
+      select: false,
+    },
 }, 
 {
     timestamps: true
