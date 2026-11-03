@@ -9,19 +9,17 @@ const transporter = nodemailer.createTransport({
 });
 
 const getAppBaseUrl = () => {
-    (process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 8000}`).replace(
+    return (process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 8000}`).replace(
         /\/$/,
         "",
     );
 }
 
-const sendEmail = async (to, subject, html) => {
+const sendEmail = async (message) => {
     await transporter.sendMail({
         from: `'ERP System' <${process.env.SMPT_NAME}>`,
-        to,
-        subject,
-        html
-    })
+        ...message,
+    });
 }
 
 

@@ -11,7 +11,9 @@ const {
 const  {
     sendVerificationEmail
 } = require('../helpers/emailHelper')
-const VERIFICATION_EXPIRE_MS = process.env.VERIFICATION_EXPIRE_MS
+const VERIFICATION_EXPIRE_MS = Number(
+    process.env.VERIFICATION_EXPIRE_MS || 24 * 60 * 60 * 1000
+)
 const RESET_EXPIRE_MS = process.env.RESET_EXPIRE_MS
 
 const registration = async (req, res) => {
@@ -34,7 +36,7 @@ const registration = async (req, res) => {
         });
         }
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await userModel.findOne({ email });
 
         if (existingUser) {
         return res.status(400).json({ 
@@ -57,9 +59,9 @@ const registration = async (req, res) => {
         });
 
         try {
-            await sendVerificationEmail(user.name, user.email, plainVerificationToken)
+            await sendVerificationEmail(newUser.email, newUser.name, plainVerificationToken)
         } catch (mailError) {
-            await userModel.findByIdAndDelete({id: newUser._id})
+            await userModel.findByIdAndDelete(newUser._id)
             console.error(`Verification email failed:${mailError}`)
             return res.status(500).json({
                 success: false,
@@ -80,6 +82,7 @@ const registration = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("Registration failed:", error);
         return res.status(500).json({ 
             success: false, 
             message: "Server error", 
