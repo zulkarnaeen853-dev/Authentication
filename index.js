@@ -8,15 +8,9 @@ const dbConfiguration = require('./configurations/dbConfiguration')
 const router = require('./routes/index')
 
 dbConfiguration()
+app.use(express.json())
 app.use(router)
 
-
-
-
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)

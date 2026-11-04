@@ -8,23 +8,18 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const getAppBaseUrl = () => {
-    return (process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 8000}`).replace(
-        /\/$/,
-        "",
-    );
-}
 
-const sendEmail = async (message) => {
+const sendEmail = async (to, subject, html) => {
     await transporter.sendMail({
         from: `'ERP System' <${process.env.SMPT_NAME}>`,
-        ...message,
+        to,
+        subject,
+        html,
     });
 }
 
-
-const sendVerificationEmail = async (email,username, plainToken) => {
-    const verifyUrl = `${getAppBaseUrl()}/api/v1/auth/verify-email/${plainToken}`;
+const sendVerificationEmail = async (email, name, plainVerificationToken) => {
+    const verifyUrl = `${process.env.CLIENT_URL}/api/v1/auth/verify-email/${plainVerificationToken}`;
     await sendEmail({
         to: email,
         subject: "Verify your email",
@@ -71,7 +66,7 @@ const sendVerificationEmail = async (email,username, plainToken) => {
 
                 <p style="margin:0 0 16px;
                             font-size:16px; line-height:26px;">
-                    Hello ${username},
+                    Hello ${name},
                 </p>
 
                 <p style="margin:0 0 24px;

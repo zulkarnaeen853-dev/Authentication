@@ -11,10 +11,15 @@ const {
 const  {
     sendVerificationEmail
 } = require('../helpers/emailHelper')
-const VERIFICATION_EXPIRE_MS = Number(
-    process.env.VERIFICATION_EXPIRE_MS || 24 * 60 * 60 * 1000
-)
-const RESET_EXPIRE_MS = process.env.RESET_EXPIRE_MS
+
+const issueAuthTokens = async (user) => {
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateAccessToken(user)
+    user.refreshToken = hashToken(refreshToken)
+
+}
+
+const RESET_EXPIRE_MS = process.env.RESET_EXPIRE_MS 
 
 const registration = async (req, res) => {
 
@@ -55,13 +60,13 @@ const registration = async (req, res) => {
             password:hashedPassword,
             profilePic,
             emailVerificationToken: hashToken(plainVerificationToken),
-            emailVerificationTokenExpires: new Date(Date.now() + VERIFICATION_EXPIRE_MS),
+            emailVerificationTokenExpires: new Date(Date.now() + process.env.VERIFICATION_EXPIRE_MS),
         });
 
         try {
             await sendVerificationEmail(newUser.email, newUser.name, plainVerificationToken)
         } catch (mailError) {
-            await userModel.findByIdAndDelete(newUser._id)
+            await userModel.findByIdAndDelete(newUser.id)
             console.error(`Verification email failed:${mailError}`)
             return res.status(500).json({
                 success: false,
@@ -96,23 +101,31 @@ const login = async (req, res) => {
 
         const {email, password} = req.body
 
-        const user = await userModel.findOne({email})
-
-        if(!user) {
-            return res.status(400).json({ 
-            success: false, 
-            message: "User does not exist", 
-        });
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide both email and password"
+            });
         }
+
+        const user = await userModel.findOne({email})
 
         const isMatch = await bcrypt.compare(password, user.password)
 
-        if (!isMatch) {
+        if (!isMatch || !user) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email or password"
             });
         }
+
+        if (!user.isEmailVerified) {
+            return res.status(403).json({
+                success: false,
+                message: "Your email address is not verified. Please check your inbox for the verification link."
+            });
+        }   
+
 
         return res.status(200).json({
             success: true,

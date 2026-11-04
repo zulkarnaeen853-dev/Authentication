@@ -9,17 +9,17 @@ const generateSecureToken = () => {
     return crypto.randomBytes(32).toString("hex"); 
 }
 
-// const generateAccessToken = (user) => {
-//     const payload = {
-//     id: user._id,
-//     username: user.username,
-//     email: user.email,
-//   };
-//   return jwt.sign(payload, process.env.JWT_SECRET, {
-//     expiresIn: process.env.JWT_ACCESS_EXPIRE || "15m",
-//   });
+const generateAccessToken = (user) => {
+    const payload = {
+    id: user._id,
+    username: user.username,
+    email: user.email,
+  };
+  return jwt.sign(payload, process.env.JWT_SECRET, {
+    expireIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+  })
 
-// }
+}
 
 // const generateRefreshToken = (user) => {
 //   const payload = { id: user._id };
@@ -37,4 +37,5 @@ const generateSecureToken = () => {
 module.exports = { 
     hashToken, 
     generateSecureToken, 
+    generateAccessToken,
 }
