@@ -14,18 +14,19 @@ const  {
 
 const issueAuthTokens = async (user) => {
     const accessToken = generateAccessToken(user)
-    const refreshToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
     user.refreshToken = hashToken(refreshToken)
+    await user.save({ validationBeforeSave: false })
+    return { accessToken, refreshToken }
+
 
 }
-
-const RESET_EXPIRE_MS = process.env.RESET_EXPIRE_MS 
 
 const registration = async (req, res) => {
 
     try {
 
-        const { name, email, password, profilePic } = req.body;
+        const { name, email, password } = req.body;
 
         if (!name || !email || !password) {
         return res.status(400).json({ 
@@ -58,7 +59,6 @@ const registration = async (req, res) => {
             name,
             email,
             password:hashedPassword,
-            profilePic,
             emailVerificationToken: hashToken(plainVerificationToken),
             emailVerificationTokenExpires: new Date(Date.now() + process.env.VERIFICATION_EXPIRE_MS),
         });
@@ -82,7 +82,6 @@ const registration = async (req, res) => {
                 id: newUser._id,
                 name: newUser.name,
                 email: newUser.email,
-                profilePic: newUser.profilePic
             }
         });
 
@@ -112,7 +111,7 @@ const login = async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.password)
 
-        if (!isMatch || !user) {
+        if (!user || !isMatch) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email or password"
@@ -126,6 +125,7 @@ const login = async (req, res) => {
             });
         }   
 
+        const { accessToken, refreshToken } = await issueAuthTokens(user)
 
         return res.status(200).json({
             success: true,
@@ -135,7 +135,9 @@ const login = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 profilePic: user.profilePic
-            }
+            },
+            accessToken,
+            refreshToken
         });
 
     } catch (error) {

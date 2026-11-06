@@ -11,22 +11,22 @@ const generateSecureToken = () => {
 
 const generateAccessToken = (user) => {
     const payload = {
-    id: user._id,
-    username: user.username,
-    email: user.email,
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expireIn: process.env.JWT_ACCESS_EXPIRE || '15m'
-  })
+        id: user._id,
+        username: user.username,
+        email: user.email,
+    };
+    return jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+        expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+    })
 
 }
 
-// const generateRefreshToken = (user) => {
-//   const payload = { id: user._id };
-//   return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-//     expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d",
-//   });
-// };
+const generateRefreshToken = (user) => {
+    const payload = { id: user._id}
+    return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+        expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
+    })
+}
 
 // const verifyAccessToken = (token) =>
 //   jwt.verify(token, process.env.JWT_SECRET);
@@ -38,4 +38,5 @@ module.exports = {
     hashToken, 
     generateSecureToken, 
     generateAccessToken,
+    generateRefreshToken,
 }
