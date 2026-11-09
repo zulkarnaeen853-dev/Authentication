@@ -5,12 +5,13 @@ const {
     generateSecureToken,
     generateAccessToken,
     generateRefreshToken,
-    verifyAccessToken, 
-    verifyRefreshToken 
 } = require("../helpers/tokenHelper");
 const  {
     sendVerificationEmail
 } = require('../helpers/emailHelper')
+
+const VERIFICATION_EXPIRE_MS = 86400000
+const RESET_EXPIRE_MS = 3600000
 
 const issueAuthTokens = async (user) => {
     const accessToken = generateAccessToken(user)
@@ -24,9 +25,9 @@ const issueAuthTokens = async (user) => {
 
 const registration = async (req, res) => {
 
-    try {
+    const { name, email, password, role } = req.body;
 
-        const { name, email, password } = req.body;
+    try {
 
         if (!name || !email || !password) {
         return res.status(400).json({ 
@@ -59,8 +60,9 @@ const registration = async (req, res) => {
             name,
             email,
             password:hashedPassword,
+            role,
             emailVerificationToken: hashToken(plainVerificationToken),
-            emailVerificationTokenExpires: new Date(Date.now() + process.env.VERIFICATION_EXPIRE_MS),
+            emailVerificationTokenExpires: new Date(Date.now() + VERIFICATION_EXPIRE_MS)
         });
 
         try {
@@ -86,19 +88,19 @@ const registration = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Registration failed:", error);
+        console.error(error);
         return res.status(500).json({ 
             success: false, 
             message: "Server error", 
         });
     }
-};
+}
 
 const login = async (req, res) => {
 
-    try {
+    const { email, password } = req.body;
 
-        const {email, password} = req.body
+    try {
 
         if (!email || !password) {
             return res.status(400).json({
@@ -107,23 +109,23 @@ const login = async (req, res) => {
             });
         }
 
-        const user = await userModel.findOne({email})
+        const user = await userModel.findOne({ email });
 
-        const isMatch = await bcrypt.compare(password, user.password)
-
-        if (!user || !isMatch) {
+        if (!user) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email or password"
             });
         }
 
-        if (!user.isEmailVerified) {
-            return res.status(403).json({
+        const isMatch = await bcrypt.compare(password, user.password)
+
+        if (!isMatch) {
+            return res.status(400).json({
                 success: false,
-                message: "Your email address is not verified. Please check your inbox for the verification link."
+                message: "Invalid email or password"
             });
-        }   
+        }
 
         const { accessToken, refreshToken } = await issueAuthTokens(user)
 
@@ -134,7 +136,7 @@ const login = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                profilePic: user.profilePic
+                role: user.role
             },
             accessToken,
             refreshToken
@@ -148,6 +150,134 @@ const login = async (req, res) => {
     }
 }
 
+const verifyEmail = async (req, res) => {
+
+    const { token } = req.params
+
+    try {
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Verification token is required'
+            })
+        }
+
+        const hashed = hashToken(token)
+        const user = await userModel.findOne({
+            emailVerificationToken: hashed,
+            emailVerificationTokenExpires: { $gt: Date.now() }
+        }).select('+emailVerificationToken +emailVerificationTokenExpires')
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired varification token'
+            })
+        }
+
+        user.isEmailVerified = true
+        user.emailVerificationToken = undefined
+        user.emailVerificationTokenExpires = undefined
+        await user.save({ validationBeforeSave: false })
+
+        return res.status(201).json({
+            success: true,
+            message: 'Email verified successfully. You can log in now'
+        })
+        
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json({
+            success: false,
+            message: 'Server error'
+        })
+    }
+}
+
+const resendVerification = async (req, res) => {
+
+    const { email } = req.body
+
+    try {
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            })
+        }
+
+        const user = await userModel.findOne({ 
+            email
+        }).select('+emailVerificationToken, +emailVerificationTokenExpires')
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'If that email is regester, a verification link has been sent'
+            })
+        }
+
+        if (user.isEmailVerified) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is already verified'
+            })
+        }
+
+        const plainVerificationToken = generateSecureToken()
+        user.emailVerificationToken = hashToken(plainVerificationToken)
+        user.emailVerificationTokenExpires = new Date(Date.now() + VERIFICATION_EXPIRE_MS)
+        await user.save({ validateBeforeSave: false })
+        await sendVerificationEmail(user.email, user.username, plainVerificationToken)
+
+        return res.status(200).json({
+                success: true,
+                message: 'Verification email sent'
+            })
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error", 
+        });
+    }
+}
+
+const getMe = async (req, res) => {
+
+    try {
+        
+        const user = await userModel.findById(req.user.id)
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                password: user.password,
+                role: user.role
+            }
+        })
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error", 
+        });
+    }
+}
 
 
-module.exports = { registration, login };
+module.exports = { registration, login, verifyEmail, resendVerification, getMe };

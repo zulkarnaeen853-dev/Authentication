@@ -1,17 +1,17 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: process.env.SMPT_SERVICE,
+  service: process.env.SMTP_SERVICE,
   auth: {
-    user: process.env.SMPT_NAME,
-    pass: process.env.SMPT_PASSWORD
+    user: process.env.SMTP_NAME,
+    pass: process.env.SMTP_PASSWORD
   }
 });
 
 
-const sendEmail = async (to, subject, html) => {
+const sendEmail = async ({to, subject, html}) => {
     await transporter.sendMail({
-        from: `'ERP System' <${process.env.SMPT_NAME}>`,
+        from: `'ERP System' <${process.env.SMTP_NAME}>`,
         to,
         subject,
         html,
