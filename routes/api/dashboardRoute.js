@@ -1,10 +1,10 @@
 const express = require('express')
 const router = express.Router()
 
-const authController = require('../../controllers/authController')
+const dashboardController = require('../../controllers/dashboardController')
 const authMiddleware = require('../../middlewares/authMiddleware')
 
-router.get('allUser', authMiddleware.protect, authController.getMe)
+router.get('/alluser', authMiddleware.protect, dashboardController.getAllUser)
 
 
 

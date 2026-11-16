@@ -33,13 +33,14 @@ const generateRefreshToken = (user) => {
 const verifyAccessToken = (token) =>
   jwt.verify(token, process.env.JWT_SECRET);
 
-// const verifyRefreshToken = (token) =>
-//   jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+const verifyRefreshToken = (token) =>
+  jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 
 module.exports = { 
     hashToken, 
     generateSecureToken, 
     generateAccessToken,
     generateRefreshToken,
-    verifyAccessToken
+    verifyAccessToken,
+    verifyRefreshToken
 }
